@@ -1,0 +1,9 @@
+import hashlib
+
+hash_objetivo = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f"
+
+for i in range(100000000):
+    clave = f"{i:08d}"
+    if hashlib.sha256(clave.encode()).hexdigest() == hash_objetivo:
+        print("Clave encontrada:", clave)
+        break

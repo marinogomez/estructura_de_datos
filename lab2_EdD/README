@@ -1,0 +1,40 @@
+# Laboratorio 2: Implementación de Árbol de Merkle (Merkle Tree)
+
+**Asignatura:** Arquitectura de Computadores y Laboratorio  
+**Implementación:** Python 3 (Programación Orientada a Objetos)  
+**Criptografía:** SHA-256 (Librería `hashlib` estándar)
+
+---
+
+## Descripción del Proyecto
+
+Este repositorio contiene la implementación de un **Árbol de Merkle** desde cero. La estructura de datos permite resumir y verificar de manera eficiente y segura la integridad de grandes conjuntos de datos (transacciones). 
+
+El código cumple estrictamente con las siguientes especificaciones requeridas:
+- **Hashing base:** Cada hoja del árbol contiene el hash SHA-256 de un bloque de datos (transacción).
+- **Concatenación ascendente:** Cada nodo interno contiene el hash SHA-256 de la concatenación de sus dos nodos hijos.
+- **Resolución de asimetría:** Si un nivel contiene un número impar de nodos, el último nodo se duplica a sí mismo para poder formar un par válido y ascender al siguiente nivel.
+- **Raíz única:** La estructura converge en un único hash final (Merkle Root) que representa criptográficamente todo el conjunto.
+
+---
+
+## Diagrama Estructural (N = 5 Transacciones)
+
+El siguiente diagrama de texto ilustra la construcción matemática del árbol utilizada en el experimento base. Al ingresar 5 transacciones, el quinto elemento (`H5`) queda sin pareja en el primer nivel, por lo que el algoritmo lo duplica conceptualmente para mantener el árbol binario equilibrado[cite: 1].
+
+```text
+                                [ RAÍZ DE MERKLE ]
+                                /                \
+                   [ H(12+34) ]                    [ H(55+55) ]
+                   /          \                    /          \
+            [ H(1+2) ]      [ H(3+4) ]      [ H(5+5) ]      (Duplicado)
+            /        \      /        \      /        \
+          H1          H2  H3          H4  H5          (H5)
+          |           |   |           |   |
+         Tx1         Tx2 Tx3         Tx4 Tx5
+
+##Uso de Inteligencia Artificial
+
+Para el desarrollo de esta práctica de laboratorio, se utilizó Inteligencia Artificial (IA) como herramienta de asistencia o "copiloto" de programación para agilizar la escritura del código fuente, la estructuración de la sintaxis en Python y el formato de esta documentación. 
+
+Es importante destacar que **el diseño del algoritmo, la lógica estructural y el control del experimento fueron dirigidos e inspeccionados estrictamente por mi persona en todo momento.** Las decisiones arquitectónicas (como la elección de Programación Orientada a Objetos para mantener el estado del árbol en memoria), la validación de los requisitos criptográficos y la implementación matemática de la regla de duplicación para nodos impares fueron analizadas y aprobadas manualmente para garantizar que la solución cumpliera con los objetivos exactos del laboratorio. La IA operó únicamente como un facilitador bajo mi supervisión directa.

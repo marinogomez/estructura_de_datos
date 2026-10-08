@@ -1,39 +1,24 @@
-import time          # Necesario para usar perf_counter(), el reloj de alta precisión para medir la ejecución.
-import random        # Permite generar números aleatorios, mezclar arreglos y hacer muestreos.
-import sys           # Da acceso a configuraciones del intérprete de Python.
-import statistics    # Contiene funciones matemáticas listas para usar, como media() y stdev() (desviación estándar).
-import matplotlib.pyplot as plt # Librería estándar para crear gráficas y visualizaciones de datos.
-import numpy as np   # Librería para manejo eficiente de arreglos y cálculos matemáticos (necesaria para gráficas logarítmicas).
+import time
+import random
+import sys
+import statistics
+import matplotlib.pyplot as plt
+import numpy as np
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DEL SISTEMA
 # ---------------------------------------------------------
-# El Árbol Binario de Búsqueda (ABB) usa funciones recursivas (funciones que se llaman a sí mismas).
-# Si insertamos 50,000 datos en orden secuencial, el árbol se estira hacia un solo lado formando
-# una cadena de 50,000 niveles de profundidad. Python por defecto detiene la recursión en 1,000 
-# para evitar bloqueos de memoria. Aumentamos este límite a 50,000 para que la prueba no falle.
 sys.setrecursionlimit(50000)
 
 # ==========================================
-# 1. GENERADOR DE DATOS (Simulador de Base de Datos)
+# 1. GENERADOR DE DATOS
 # ==========================================
 def generar_estudiantes(cantidad, ordenados=False):
-    """
-    Crea una lista de diccionarios. Cada diccionario representa un registro completo.
-    El parámetro 'ordenados' es vital para el experimento:
-    - Si es False (Aleatorios): El ABB funcionará perfecto.
-    - Si es True (Ordenados): El ABB colapsará y se volverá ineficiente.
-    """
-    # Generamos los IDs secuenciales (ej. 1000, 1001, 1002...)
     ids = list(range(1000, 1000 + cantidad))
-    
-    # Si la prueba exige datos aleatorios, desordenamos la lista de IDs.
     if not ordenados:
         random.shuffle(ids)
         
     nombres = ["Ana", "Carlos", "María", "Juan", "Luis", "Elena", "Sofía", "Pedro"]
-    
-    # Construimos y retornamos el lote de estudiantes con todos los campos solicitados en el taller.
     return [{
         "id": i,
         "nombre": random.choice(nombres),
@@ -44,40 +29,28 @@ def generar_estudiantes(cantidad, ordenados=False):
 # ==========================================
 # 2. ESTRUCTURAS DE DATOS
 # ==========================================
-
-# --- A. LISTA (Búsqueda Lineal) ---
 class SistemaLista:
     def __init__(self):
-        self.datos = [] # Arreglo dinámico en memoria.
+        self.datos = []
         
     def insertar(self, estudiante):
-        # Inserción O(1): Simplemente empuja el dato al final del arreglo.
         self.datos.append(estudiante)
         
     def buscar(self, id_estudiante):
-        # Búsqueda O(N): Debe revisar cada elemento uno por uno.
-        # Si el dato está de último, toma N pasos. Escala muy mal.
         for est in self.datos:
             if est["id"] == id_estudiante:
                 return est
         return None
-        
-    def listar(self):
-        # Para listar ordenadamente, extrae todos los datos y los ordena.
-        # Python usa Timsort internamente, que tiene complejidad O(N log N).
-        return sorted(self.datos, key=lambda x: x["id"])
 
-
-# --- B. ÁRBOL BINARIO DE BÚSQUEDA (ABB) ---
 class NodoABB:
     def __init__(self, est):
         self.estudiante = est
-        self.izq = None # Puntero a un ID menor
-        self.der = None # Puntero a un ID mayor
+        self.izq = None
+        self.der = None
 
 class SistemaABB:
     def __init__(self):
-        self.raiz = None # Nodo inicial del árbol
+        self.raiz = None
         
     def insertar(self, est):
         if not self.raiz: 
@@ -86,7 +59,6 @@ class SistemaABB:
             self._ins(self.raiz, est)
             
     def _ins(self, nodo, est):
-        # Lógica de enrutamiento: Menores a la izquierda, mayores a la derecha.
         if est["id"] < nodo.estudiante["id"]:
             if not nodo.izq: nodo.izq = NodoABB(est)
             else: self._ins(nodo.izq, est)
@@ -98,95 +70,59 @@ class SistemaABB:
         return self._bus(self.raiz, id_est)
         
     def _bus(self, nodo, id_est):
-        # Búsqueda O(log N) ideal: En cada paso, descarta la mitad del árbol.
-        # Si la raíz es 50 y buscas 25, ignoras todo el lado derecho (mayores que 50).
         if not nodo or nodo.estudiante["id"] == id_est:
             return nodo.estudiante if nodo else None
-        
-        # Descenso recursivo
         if id_est < nodo.estudiante["id"]:
             return self._bus(nodo.izq, id_est)
         return self._bus(nodo.der, id_est)
-        
-    def listar(self):
-        resultado = []
-        self._inorden(self.raiz, resultado)
-        return resultado
-        
-    def _inorden(self, nodo, resultado):
-        # Recorrido Inorden (Izquierda -> Raíz -> Derecha).
-        # Extrae los elementos ya ordenados en tiempo O(N).
-        if nodo:
-            self._inorden(nodo.izq, resultado)
-            resultado.append(nodo.estudiante)
-            self._inorden(nodo.der, resultado)
 
-
-# --- C. ÁRBOL B+ (El estándar de la Ingeniería de Datos) ---
 class NodoBPlus:
     def __init__(self, es_hoja=False):
         self.es_hoja = es_hoja
-        self.claves = []      # Lista de IDs para orientar la búsqueda.
-        self.hijos = []       # Punteros a los nodos inferiores.
-        self.valores = []     # Los diccionarios reales de los estudiantes.
-        self.siguiente = None # Magia del B+: Puntero directo a la siguiente hoja. Hace que listar sea O(N).
+        self.claves = []
+        self.hijos = []
+        self.valores = []
+        self.siguiente = None
 
 class SistemaBPlus:
     def __init__(self, orden=10):
-        # El "orden" define la capacidad máxima de claves por nodo.
-        # Agrupar muchos datos en un solo nodo hace que el árbol sea "ancho y bajito",
-        # reduciendo los saltos de memoria drásticamente.
         self.raiz = NodoBPlus(es_hoja=True)
         self.primera_hoja = self.raiz
         self.orden = orden
         
     def buscar(self, id_est):
-        # Búsqueda O(log N) garantizada. Siempre.
         nodo = self.raiz
-        
-        # 1. Navegación por las ramas (índices)
         while not nodo.es_hoja:
             i = 0
             while i < len(nodo.claves) and id_est >= nodo.claves[i]: i += 1
             nodo = nodo.hijos[i]
             
-        # 2. Búsqueda final en la hoja correspondiente
         for i, clave in enumerate(nodo.claves):
             if clave == id_est: return nodo.valores[i]
         return None
         
     def insertar(self, est):
-        # Algoritmo de prevención de desbordamiento (Top-Down).
-        # Si la raíz está al límite de su capacidad, el árbol DEBE crecer un nivel hacia arriba.
-        # Esto asegura que todas las hojas se mantengan siempre a la misma profundidad (balanceo perfecto).
         if len(self.raiz.claves) == self.orden - 1:
             n_raiz = NodoBPlus()
             n_raiz.hijos.append(self.raiz)
             self.raiz = n_raiz
-            self._div(n_raiz, 0) # Parte el nodo saturado
-            self._ins(n_raiz, est) # Inserta en el espacio liberado
+            self._div(n_raiz, 0)
+            self._ins(n_raiz, est)
         else:
             self._ins(self.raiz, est)
             
     def _div(self, padre, i):
-        # Esta función toma un nodo lleno y lo divide en dos mitades exactas.
         hijo = padre.hijos[i]
         nuevo = NodoBPlus(es_hoja=hijo.es_hoja)
-        mid = (self.orden - 1) // 2 # Calcula el punto medio
+        mid = (self.orden - 1) // 2
         
         if hijo.es_hoja:
-            # División de una hoja de datos
             nuevo.claves, nuevo.valores = hijo.claves[mid:], hijo.valores[mid:]
             hijo.claves, hijo.valores = hijo.claves[:mid], hijo.valores[:mid]
-            
-            # Enlaza la nueva hoja con la anterior (mantiene la cadena intacta para el método listar)
             nuevo.siguiente = hijo.siguiente
             hijo.siguiente = nuevo
-            
-            # Sube una copia de la clave central al nodo padre para que sirva de puente
             padre.claves.insert(i, nuevo.claves[0])
         else:
-            # División de una rama interna (índice)
             nuevo.claves, nuevo.hijos = hijo.claves[mid+1:], hijo.hijos[mid+1:]
             padre.claves.insert(i, hijo.claves[mid])
             hijo.claves, hijo.hijos = hijo.claves[:mid], hijo.hijos[:mid+1]
@@ -194,7 +130,6 @@ class SistemaBPlus:
         padre.hijos.insert(i + 1, nuevo)
         
     def _ins(self, nodo, est):
-        # Descenso recursivo buscando la hoja correcta para insertar.
         if nodo.es_hoja:
             i = 0
             while i < len(nodo.claves) and est["id"] > nodo.claves[i]: i += 1
@@ -203,94 +138,59 @@ class SistemaBPlus:
         else:
             i = 0
             while i < len(nodo.claves) and est["id"] >= nodo.claves[i]: i += 1
-            
-            # Si en la bajada vemos que un hijo está lleno, lo partimos ANTES de entrar en él.
-            # Esto evita tener que retroceder (backtracking) si se desborda.
             if len(nodo.hijos[i].claves) == self.orden - 1:
                 self._div(nodo, i)
                 if est["id"] >= nodo.claves[i]: i += 1
             self._ins(nodo.hijos[i], est)
 
-    def listar(self):
-        # Como todas las hojas del B+ están conectadas como un tren de vagones (lista enlazada),
-        # listar todo en orden es O(N) directo, solo saltando de hoja en hoja con el puntero 'siguiente'.
-        resultado = []
-        actual = self.primera_hoja
-        while actual:
-            resultado.extend(actual.valores)
-            actual = actual.siguiente
-        return resultado
-
 # ==========================================
 # 3. MOTOR ESTADÍSTICO Y EXPERIMENTAL
 # ==========================================
-def correr_experimento(tamanos_N, repeticiones=5, M_aleatorios=50000, M_ordenados=5000):
-    """
-    Motor estadístico que cumple con los parámetros del Laboratorio:
-    - tamanos_N: Lista de volúmenes de datos a probar (ej. 1000, 5000...).
-    - repeticiones: Cantidad de trials para calcular media y desviación estándar.
-    - M_aleatorios / M_ordenados: Volumen de búsquedas según el caso.
-    """
-    # Estructura profunda para almacenar Media y Desviación Estándar de cada escenario.
+def correr_experimento(tamanos_N, repeticiones=3, M_aleatorios=100000, M_ordenados=5000):
     resultados = {
         "Aleatorios": {"Lista": {"medias": [], "stdevs": []}, "ABB": {"medias": [], "stdevs": []}, "B+": {"medias": [], "stdevs": []}},
         "Ordenados": {"Lista": {"medias": [], "stdevs": []}, "ABB": {"medias": [], "stdevs": []}, "B+": {"medias": [], "stdevs": []}}
     }
     
-    # 1. Bucle exterior: Prueba el caso Ideal (Aleatorio) y el Peor Caso (Ordenado).
     for estado in ["Aleatorios", "Ordenados"]:
         ordenado = (estado == "Ordenados")
         M_actual = M_ordenados if ordenado else M_aleatorios
         
-        print(f"\n[{estado.upper()}] Ejecutando M={M_actual} búsquedas sobre {repeticiones} repeticiones:")
+        print(f"\n[{estado.upper()}] Ejecutando M={M_actual} búsquedas:")
         
-        # 2. Bucle medio: Escala el volumen de datos de menor a mayor.
         for N in tamanos_N:
-            tiempos = {"Lista": [], "ABB": [], "B+": []} # Guarda los N tiempos de cada repetición
+            tiempos = {"Lista": [], "ABB": [], "B+": []}
             
-            # 3. Bucle interno: Repite el mismo experimento varias veces para aislar el ruido de la CPU.
             for _ in range(repeticiones):
-                # Generación de la Base de Datos simulada
                 datos = generar_estudiantes(N, ordenados=ordenado)
                 ids_disponibles = [d["id"] for d in datos]
-                
-                # Usamos random.choices para sacar M_actual elementos (con reemplazo) de forma eficiente.
-                # Esto permite que M_aleatorios sea inmenso (ej. 50,000) sin importar que N sea pequeño.
                 busquedas = random.choices(ids_disponibles, k=M_actual)
                 
-                # Inicializa las tres estructuras en memoria RAM
                 sl, sa, sb = SistemaLista(), SistemaABB(), SistemaBPlus(orden=20)
                 for d in datos:
                     sl.insertar(d)
                     sa.insertar(d)
                     sb.insertar(d)
                 
-                # MEDICIóN DE LA LISTA
-                inicio = time.perf_counter() # Inicia cronómetro
+                inicio = time.perf_counter()
                 for b in busquedas: sl.buscar(b)
-                tiempos["Lista"].append(time.perf_counter() - inicio) # Detiene cronómetro y guarda
+                tiempos["Lista"].append(time.perf_counter() - inicio)
                 
-                # MEDICIóN DEL ABB
                 inicio = time.perf_counter()
                 for b in busquedas: sa.buscar(b)
                 tiempos["ABB"].append(time.perf_counter() - inicio)
                 
-                # MEDICIóN DEL ÁRBOL B+
                 inicio = time.perf_counter()
                 for b in busquedas: sb.buscar(b)
                 tiempos["B+"].append(time.perf_counter() - inicio)
             
-            # CÁLCULO ESTADÍSTICO FINAL PARA ESTE TAMAÑO (N)
             for estructura in ["Lista", "ABB", "B+"]:
-                media = statistics.mean(tiempos[estructura]) # Promedio de las N ejecuciones
-                std_dev = statistics.stdev(tiempos[estructura]) if repeticiones > 1 else 0.0 # Qué tanto variaron los tiempos
-                
-                # Se guardan en el diccionario para la graficación
+                media = statistics.mean(tiempos[estructura])
+                std_dev = statistics.stdev(tiempos[estructura]) if repeticiones > 1 else 0.0
                 resultados[estado][estructura]["medias"].append(media)
                 resultados[estado][estructura]["stdevs"].append(std_dev)
                 
-            # Log de consola
-            print(f" N={N:<6} | Lista: μ={resultados[estado]['Lista']['medias'][-1]:.4f}s | ABB: μ={resultados[estado]['ABB']['medias'][-1]:.4f}s | B+: μ={resultados[estado]['B+']['medias'][-1]:.4f}s")
+            print(f" N={N:<7} | Lista: μ={resultados[estado]['Lista']['medias'][-1]:.4f}s | ABB: μ={resultados[estado]['ABB']['medias'][-1]:.4f}s | B+: μ={resultados[estado]['B+']['medias'][-1]:.4f}s")
             
     return resultados
 
@@ -298,85 +198,57 @@ def correr_experimento(tamanos_N, repeticiones=5, M_aleatorios=50000, M_ordenado
 # 4. RENDERIZADO VISUAL
 # ==========================================
 def graficar_resultados(tamanos_N, resultados, M_aleatorios, M_ordenados):
-    """
-    Dibuja los planos cartesianos con escalas lineales y logarítmicas.
-    """
-    # Crea una ventana (Figure) con 3 subgráficas (Axes) alineadas en 1 fila.
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 6))
-    x = np.array(tamanos_N) # El eje X representa la variable independiente (Volumen de datos).
+    fig, axs = plt.subplots(2, 2, figsize=(18, 12))
+    axs = axs.flatten()
+    x = np.array(tamanos_N)
     
     colores = {"Lista": "red", "ABB": "blue", "B+": "green"}
     marcadores = {"Lista": "o", "ABB": "s", "B+": "^"}
     
-    # Configuramos qué datos y escalas renderizará cada gráfica
     configuraciones = [
-        (ax1, "Aleatorios", f"Caso Ideal (Aleatorio)\nEscala Logarítmica", 'log', M_aleatorios),
-        (ax2, "Ordenados", f"Peor Caso (Ordenado)\nEscala Lineal", 'linear', M_ordenados),
-        (ax3, "Ordenados", f"Peor Caso (Ordenado)\nEscala Logarítmica", 'log', M_ordenados)
+        (axs[0], "Aleatorios", ["Lista", "ABB", "B+"], "Ideal: Lista vs Árboles (Escala Log)\nM=100k", 'log', M_aleatorios),
+        (axs[1], "Aleatorios", ["ABB", "B+"], "Ideal: Zoom a Árboles (Escala Lineal)\nRevela la curva O(log N)", 'linear', M_aleatorios),
+        (axs[2], "Ordenados", ["Lista", "ABB", "B+"], "Peor Caso: Colapso Estructural (Escala Lineal)\nM=5k", 'linear', M_ordenados),
+        (axs[3], "Ordenados", ["Lista", "ABB", "B+"], "Peor Caso: Colapso Estructural (Escala Log)\nM=5k", 'log', M_ordenados)
     ]
     
-    for ax, estado, titulo, escala, m_val in configuraciones:
-        for est in ["Lista", "ABB", "B+"]:
+    for ax, estado, estructuras, titulo, escala, m_val in configuraciones:
+        for est in estructuras:
             medias = np.array(resultados[estado][est]["medias"])
             stdevs = np.array(resultados[estado][est]["stdevs"])
             
-            # Etiqueta dinámica: Si es el ABB en el caso ordenado, su complejidad se muestra como O(N) porque se daña.
-            if est != "Lista" and not (estado == "Ordenados" and est == "ABB"):
-                label_tex = f"{est} O(log N)"
-            else:
-                label_tex = f"{est} O(N)"
+            label_tex = f"{est} O(N)" if (est == "Lista" or (estado == "Ordenados" and est == "ABB")) else f"{est} O(log N)"
+            ax.plot(x, medias, marker=marcadores[est], label=label_tex, color=colores[est], linewidth=2.5)
             
-            # Traza la línea principal (Media de tiempo)
-            ax.plot(x, medias, marker=marcadores[est], label=label_tex, color=colores[est], linewidth=2)
-            
-            # Dibuja la sombra de la desviación estándar (Variabilidad de la máquina)
-            # Ajuste de seguridad: En escala logarítmica el fill_between falla si hay valores <= 0.
-            # np.maximum asegura que el límite inferior de la sombra nunca sea cero o negativo.
             y_lower = np.maximum(medias - stdevs, 1e-6) if escala == 'log' else (medias - stdevs)
             ax.fill_between(x, y_lower, medias + stdevs, color=colores[est], alpha=0.15)
             
-        # Decoración estética exigida en los parámetros del profesor
-        ax.set_title(titulo, fontsize=13, fontweight='bold')
-        ax.set_xlabel("Tamaño de Entrada (N)", fontsize=11)
-        ax.set_ylabel(f"Tiempo (s) para M={m_val}", fontsize=11)
-        ax.set_yscale(escala) # Aplica escala Lineal o Logarítmica según la configuración de la iteración
-        ax.grid(True, which="both", ls="--", alpha=0.5) # 'which="both"' muestra grillas menores en logarítmico
-        ax.legend(fontsize=10)
+        ax.set_title(titulo, fontsize=14, fontweight='bold')
+        ax.set_xlabel("Tamaño de Entrada (N)", fontsize=12)
+        ax.set_ylabel(f"Tiempo (s)", fontsize=12)
+        ax.set_yscale(escala)
+        ax.grid(True, which="both", ls="--", alpha=0.6)
+        ax.legend(fontsize=11)
 
-    # Título global superior
-    plt.suptitle("Evaluación Experimental de Búsqueda: Lineal vs Árboles (ABB / B+)", fontsize=16, y=1.05)
-    plt.tight_layout() # Separa las gráficas para que no se pisen los textos
-    
-    # Exportación
-    plt.savefig("grafica_laboratorio3_mejorada.png", dpi=300, bbox_inches="tight")
-    print("\n[OK] Gráfica generada y guardada como 'grafica_laboratorio3_mejorada.png'")
-    
-    # Apertura de la ventana de interfaz
+    plt.suptitle("Evaluación de Estructuras: Descubriendo la curva O(log N)", fontsize=18, y=1.02)
+    plt.tight_layout()
+    plt.savefig("grafica_laboratorio_curvas.png", dpi=300, bbox_inches="tight")
+    print("\n[OK] Gráfica guardada como 'grafica_laboratorio_curvas.png'")
     plt.show()
 
 # ==========================================
 # 5. PUNTO DE ENTRADA MAIN
 # ==========================================
 if __name__ == "__main__":
-    # Parámetros del experimento dictados por el diseño estadístico
-    N_parametros = [1000, 5000, 10000, 15000, 20000] # Variable independiente: Cantidad de estudiantes.
+    # Arreglo unificado. Tope de 20,000 para proteger la memoria física de la PC.
+    N_parametros = [1000, 5000, 10000, 15000, 20000]
     
-    # ---------------------------------------------------------------
-    # CONFIGURACIÓN DE PARÁMETROS M:
-    # ---------------------------------------------------------------
-    # M_ALEATORIOS se sube a 50,000 para forzar a que el ABB y B+ tarden 
-    # más de 1 segundo en total y podamos distinguir sus líneas logarítmicas fácilmente.
-    M_ALEATORIOS = 50000 
-    
-    # M_ORDENADOS se deja en 5,000. Si lo subimos a 50,000, la Lista y 
-    # el ABB colapsado (que se vuelve O(N)) tardarían demasiado en procesar la matriz O(N*M).
+    M_ALEATORIOS = 100000 
     M_ORDENADOS = 5000   
-    REPETICIONES = 5   # Control de Varianza.
+    REPETICIONES = 3 
     
-    # Ejecuta el motor
     resultados_lab = correr_experimento(N_parametros, repeticiones=REPETICIONES, 
                                         M_aleatorios=M_ALEATORIOS, M_ordenados=M_ORDENADOS)
     
-    # Proyecta las gráficas
     graficar_resultados(N_parametros, resultados_lab, 
                         M_aleatorios=M_ALEATORIOS, M_ordenados=M_ORDENADOS)

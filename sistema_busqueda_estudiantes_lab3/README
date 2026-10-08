@@ -1,0 +1,50 @@
+# Laboratorio 3: Sistema de Búsqueda de Estudiantes
+**Autor:** Marino Gómez
+
+Este repositorio contiene la implementación y el estudio estadístico de tres estructuras de datos diferentes (Lista, Árbol Binario de Búsqueda y Árbol B+) aplicadas a un sistema de gestión de estudiantes. El objetivo principal es analizar experimentalmente cómo escala el rendimiento de las operaciones de búsqueda a medida que aumenta el volumen de datos ($N$) y cambia la naturaleza de la inserción (aleatoria vs. ordenada).
+
+## Estructuras Implementadas y Análisis de Rendimiento
+
+El experimento evalúa el tiempo que toma realizar $M$ búsquedas sobre un conjunto de $N$ registros. A continuación, se explica el comportamiento y la superioridad de ciertas estructuras en diferentes escenarios:
+
+### 1. Caso Ideal: Inserción de Datos Aleatorios
+En este escenario, los IDs de los estudiantes ingresan al sistema sin un orden específico.
+
+*   **Lista Dinámica (El más lento):** Tiene una complejidad de $O(N)$. Para encontrar un estudiante, el algoritmo debe recorrer el arreglo posición por posición. A medida que $N$ crece, el tiempo de búsqueda crece de forma proporcional y lineal.
+*   **Árbol Binario de Búsqueda - ABB (Rápido):** Alcanza una complejidad de $O(\log N)$. Al recibir datos desordenados, el árbol logra ramificarse de manera natural hacia la izquierda y la derecha. Esto permite que, en cada paso de la búsqueda, se descarte la mitad de los registros restantes, volviendo la operación extremadamente rápida incluso con millones de datos.
+*   **Árbol B+ (Rápido y Optimizado):** También opera en $O(\log N)$. Agrupa múltiples claves en un solo nodo, lo que hace que el árbol sea muy ancho y poco profundo. Sus tiempos son comparables a los del ABB en este escenario, pero su arquitectura minimiza los saltos de memoria, siendo el estándar real en bases de datos.
+
+### 2. Peor Caso: Inserción de Datos Ordenados
+En este escenario, los IDs ingresan de forma secuencial (ej. 1000, 1001, 1002...), simulando el comportamiento típico de una base de datos autoincremental.
+
+*   **Lista Dinámica (Lento):** Mantiene su complejidad ineficiente de $O(N)$.
+*   **Árbol Binario de Búsqueda - ABB (Colapso Estructural - Lento):** Al ingresar datos secuenciales, el ABB pierde su forma de árbol. Como cada ID nuevo es mayor al anterior, todos se insertan hacia el lado derecho, creando una sola línea recta. El ABB se degenera funcionalmente en una lista enlazada, desplomando su rendimiento de $O(\log N)$ a $O(N)$.
+*   **Árbol B+ (El indiscutible ganador - Rápido):** Mantiene su complejidad de $O(\log N)$. El Árbol B+ posee un mecanismo proactivo de partición (*Top-Down* o *Bottom-Up*): cuando un nodo se llena, se divide y empuja una clave hacia arriba. Esto fuerza al árbol a crecer desde la raíz, garantizando que **siempre** esté perfectamente balanceado sin importar si los datos llegan en perfecto orden. Es por esto que las bases de datos modernas confían en el B+ y no en el ABB tradicional.
+
+---
+
+## Declaración sobre el uso de Inteligencia Artificial (IA)
+
+En el desarrollo de este laboratorio, la Inteligencia Artificial fue utilizada estrictamente como una herramienta de asistencia (copiloto) bajo la dirección, diseño y validación del autor. El flujo de trabajo se estructuró de la siguiente manera:
+
+1.  **Guía y Diseño Arquitectónico:** La definición de los requisitos, la selección de los casos de prueba (Aleatorios vs. Ordenados), los tamaños de las muestras ($N$ y $M$), y la exigencia de incluir la desviación estándar fueron establecidos manualmente basándose en los requerimientos del taller.
+2.  **Generación de Código Base (Boilerplate):** Se delegó a la IA la escritura del código repetitivo y la sintaxis específica de librerías como `matplotlib` para la generación de los planos cartesianos y `time.perf_counter` para la medición de alta precisión.
+3.  **Implementación del Árbol B+:** Dada la complejidad de los algoritmos de partición y mantenimiento de punteros en las hojas del B+, la IA estructuró la lógica base, la cual fue posteriormente revisada, comentada paso a paso y validada mediante pruebas de escritorio para garantizar su correctitud teórica y práctica.
+4.  **Validación:** Todas las explicaciones matemáticas y de rendimiento presentes en este repositorio son producto de la comprensión teórica de la complejidad algorítmica y fueron verificadas contra la literatura académica de las estructuras de datos.
+
+---
+
+## Instrucciones de Ejecución
+
+Para replicar el estudio estadístico y generar la gráfica de rendimiento:
+
+1.  Asegúrese de tener Python 3.x instalado.
+2.  Instale la dependencia de graficación:
+    ```bash
+    pip install matplotlib numpy
+    ```
+3.  Ejecute el motor estadístico:
+    ```bash
+    python laboratorio3_busqueda.py
+    ```
+4.  El sistema imprimirá los tiempos promedios con sus respectivas desviaciones estándar en la terminal, y generará un archivo `grafica_laboratorio3.png` en el mismo directorio.

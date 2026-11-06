@@ -12,7 +12,7 @@ Los resultados se comparan contra **fuerza bruta con listas**. No se usan árbol
 
 | Archivo | Contenido |
 |---|---|
-| `Quadtreetree.py` | `Caja`, `Nodo`, `Quadtree` (inserción, búsqueda por radio, k vecinos más cercanos), `FuerzaBruta`, conversión de unidades y generación/carga de los datos |
+| `Quadtree.py` | `Caja`, `Nodo`, `Quadtree` (inserción, búsqueda por radio, k vecinos más cercanos), `FuerzaBruta`, conversión de unidades y generación/carga de los datos |
 | `test.py` | 25 pruebas unitarias (2D, 1D, 3D, 4D, 5D, unidades, casos borde) + verificación visual |
 | `analisis.py` | Métricas de rendimiento, gráficas y discusión de resultados |
 | `datos/puntos_entrega.csv` | Los 10.000 puntos de entrega (id, lat, lon, x_m, y_m) |
